@@ -198,8 +198,8 @@ export class RipgrepSearchInWorkspaceServer implements SearchInWorkspaceServer {
                         const length = byteRangeLengthToCharacterLength(lineText, character, endByte - startByte);
 
                         const result: SearchInWorkspaceResult = {
-                            root: this.getRoot(file, rootUris),
-                            file,
+                            root: FileUri.create(this.getRoot(file, rootUris)).toString(),
+                            file: FileUri.create(file).toString(),
                             line,
                             character: character + 1,
                             length,
@@ -244,9 +244,9 @@ export class RipgrepSearchInWorkspaceServer implements SearchInWorkspaceServer {
      * @param rootUris string URIs of the root folders in the current workspace
      */
     private getRoot(fileUri: string, rootUris: string[]): string {
-        const roots = rootUris.filter(root => new URI(root).withScheme('file').isEqualOrParent(new URI(fileUri).withScheme('file')));
+        const roots = rootUris.filter(root => new URI(root).withScheme('file').isEqualOrParent(FileUri.create(fileUri).withScheme('file')));
         if (roots.length > 0) {
-            return roots.sort((r1, r2) => r1.length - r2.length)[0];
+            return FileUri.fsPath(roots.sort((r1, r2) => r1.length - r2.length)[0]);
         }
         return '';
     }
