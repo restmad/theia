@@ -37,15 +37,16 @@ export class OpenUriCommandHandler {
         this.openNewTabDialog = new OpenNewTabDialog(windowService);
     }
 
-    public execute(resource: URI): void {
+    public execute(resource: URI | string | undefined): void {
         if (!resource) {
             return;
         }
 
-        if (resource.scheme === 'http' || resource.scheme === 'https') {
-            this.openWebUri(resource.toString());
+        const uriString = resource.toString();
+        if (uriString.startsWith('http://') || uriString.startsWith('https://')) {
+            this.openWebUri(uriString);
         } else {
-            this.commandService.executeCommand('editor.action.openLink', resource.toString());
+            this.commandService.executeCommand('editor.action.openLink', uriString);
         }
     }
 
