@@ -49,6 +49,11 @@ export interface SearchInWorkspaceOptions {
 
 export interface SearchInWorkspaceResult {
     /**
+     * The path to the root folder that the search was performed.
+     */
+    root: string;
+
+    /**
      * The path to the file containing the result.
      */
     file: string;
@@ -114,9 +119,9 @@ export interface SearchInWorkspaceClient {
 export const SearchInWorkspaceServer = Symbol('SearchInWorkspaceServer');
 export interface SearchInWorkspaceServer extends JsonRpcServer<SearchInWorkspaceClient> {
     /**
-     * Start a search for WHAT in directory ROOT.  Return a unique search id.
+     * Start a search for WHAT in directories ROOTURIS.  Return a unique search id.
      */
-    search(what: string, rootUri: string, opts?: SearchInWorkspaceOptions): Promise<number>;
+    search(what: string, rootUris: string[], opts?: SearchInWorkspaceOptions): Promise<number>;
 
     /**
      * Cancel an ongoing search.
