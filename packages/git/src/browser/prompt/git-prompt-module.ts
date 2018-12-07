@@ -14,13 +14,16 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
-const request = require('request');
-const unzip = require('unzip-stream');
-const path = require('path');
+import { ContainerModule, interfaces } from 'inversify';
+import { WebSocketConnectionProvider } from '@theia/core/lib/browser/messaging/ws-connection-provider';
+import { GitPrompt, GitPromptServer, GitPromptServerProxy, GitPromptServerImpl } from '../../common/git-prompt';
 
-const pck = require('../package.json');
-for (const name in pck.adapters) {
-    const url = pck.adapters[name];
-    const targetPath = path.join(__dirname, '../download', name);
-    request(url).pipe(unzip.Extract({ path: targetPath }));
+export default new ContainerModule(bind => {
+    bind(GitPrompt).toSelf();
+    bindPromptServer(bind);
+});
+
+export function bindPromptServer(bind: interfaces.Bind): void {
+    bind(GitPromptServer).to(GitPromptServerImpl).inSingletonScope();
+    bind(GitPromptServerProxy).toDynamicValue(context => WebSocketConnectionProvider.createProxy(context.container, GitPrompt.WS_PATH)).inSingletonScope();
 }

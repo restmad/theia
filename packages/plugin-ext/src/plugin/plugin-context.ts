@@ -55,6 +55,9 @@ import {
     DiagnosticSeverity,
     DiagnosticTag,
     Location,
+    Progress,
+    ProgressOptions,
+    ProgressLocation,
     ParameterInformation,
     SignatureInformation,
     SignatureHelp,
@@ -85,10 +88,13 @@ import { TerminalServiceExtImpl } from './terminal-ext';
 import { LanguagesExtImpl, score } from './languages';
 import { fromDocumentSelector } from './type-converters';
 import { DialogsExtImpl } from './dialogs';
+import { NotificationExtImpl } from './notification';
+import { StatusBarExtImpl } from './statusBar';
 import { CancellationToken } from '@theia/core/lib/common/cancellation';
 import { MarkdownString } from './markdown-string';
 import { TreeViewsExtImpl } from './tree/tree-views';
 import { ConnectionExtImpl } from './connection-ext';
+import { WebviewsExtImpl } from './webviews';
 
 export function createAPIFactory(
     rpc: RPCProtocol,
@@ -101,6 +107,8 @@ export function createAPIFactory(
     const dialogsExt = new DialogsExtImpl(rpc);
     const messageRegistryExt = new MessageRegistryExt(rpc);
     const windowStateExt = rpc.set(MAIN_RPC_CONTEXT.WINDOW_STATE_EXT, new WindowStateExtImpl());
+    const notificationExt = rpc.set(MAIN_RPC_CONTEXT.NOTIFICATION_EXT, new NotificationExtImpl(rpc));
+    const statusBarExt = new StatusBarExtImpl(rpc);
     const editorsAndDocuments = rpc.set(MAIN_RPC_CONTEXT.EDITORS_AND_DOCUMENTS_EXT, new EditorsAndDocumentsExtImpl(rpc));
     const editors = rpc.set(MAIN_RPC_CONTEXT.TEXT_EDITORS_EXT, new TextEditorsExtImpl(rpc, editorsAndDocuments));
     const documents = rpc.set(MAIN_RPC_CONTEXT.DOCUMENTS_EXT, new DocumentsExtImpl(rpc, editorsAndDocuments));
@@ -110,6 +118,7 @@ export function createAPIFactory(
     const outputChannelRegistryExt = new OutputChannelRegistryExt(rpc);
     const languagesExt = rpc.set(MAIN_RPC_CONTEXT.LANGUAGES_EXT, new LanguagesExtImpl(rpc, documents, commandRegistry));
     const treeViewsExt = rpc.set(MAIN_RPC_CONTEXT.TREE_VIEWS_EXT, new TreeViewsExtImpl(rpc, commandRegistry));
+    const webviewExt = rpc.set(MAIN_RPC_CONTEXT.WEBVIEWS_EXT, new WebviewsExtImpl(rpc));
     rpc.set(MAIN_RPC_CONTEXT.CONNECTION_EXT, new ConnectionExtImpl(rpc));
 
     return function (plugin: InternalPlugin): typeof theia {
@@ -158,12 +167,13 @@ export function createAPIFactory(
                 return editors.onDidChangeTextEditorVisibleRanges(listener, thisArg, disposables);
             },
             async showTextDocument(documentArg: theia.TextDocument | Uri,
-                                   optionsArg?: theia.TextDocumentShowOptions | theia.ViewColumn,
-                                   preserveFocus?: boolean
+                optionsArg?: theia.TextDocumentShowOptions | theia.ViewColumn,
+                preserveFocus?: boolean
             ): Promise<theia.TextEditor> {
                 let documentOptions: theia.TextDocumentShowOptions | undefined;
                 const uri: Uri = documentArg instanceof Uri ? documentArg : documentArg.uri;
                 if (optionsArg) {
+                    // tslint:disable-next-line:no-any
                     const optionsAny: any = optionsArg;
                     if (optionsAny.preserveFocus || optionsAny.preview || optionsAny.selection || optionsAny.viewColumn) {
                         documentOptions = optionsArg as theia.TextDocumentShowOptions;
@@ -240,7 +250,15 @@ export function createAPIFactory(
             createOutputChannel(name: string): theia.OutputChannel {
                 return outputChannelRegistryExt.createOutputChannel(name);
             },
-
+            createWebviewPanel(viewType: string,
+                title: string,
+                showOptions: theia.ViewColumn | { viewColumn: theia.ViewColumn, preserveFocus?: boolean },
+                options: theia.WebviewPanelOptions & theia.WebviewOptions): theia.WebviewPanel {
+                return webviewExt.createWebview(viewType, title, showOptions, options, Uri.file(plugin.pluginPath));
+            },
+            registerWebviewPanelSerializer(viewType: string, serializer: theia.WebviewPanelSerializer): theia.Disposable {
+                return webviewExt.registerWebviewPanelSerializer(viewType, serializer);
+            },
             get state(): theia.WindowState {
                 return windowStateExt.getWindowState();
             },
@@ -264,6 +282,18 @@ export function createAPIFactory(
             },
             createTreeView<T>(viewId: string, options: { treeDataProvider: theia.TreeDataProvider<T> }): theia.TreeView<T> {
                 return treeViewsExt.createTreeView(viewId, options);
+            },
+            withProgress<R>(
+                options: ProgressOptions,
+                task: (progress: Progress<{ message?: string; increment?: number }>, token: theia.CancellationToken) => PromiseLike<R>
+            ): PromiseLike<R> {
+                switch (options.location) {
+                    case ProgressLocation.Notification: return notificationExt.withProgress(options, task);
+                    case ProgressLocation.Window: return statusBarExt.withProgress(options, task);
+                    case ProgressLocation.SourceControl: return new Promise(() => {
+                        console.error('Progress location \'SourceControl\' is not supported.');
+                    });
+                }
             }
         };
 
@@ -333,6 +363,9 @@ export function createAPIFactory(
             registerFileSystemProvider(scheme: string, provider: theia.FileSystemProvider, options?: { isCaseSensitive?: boolean, isReadonly?: boolean }): theia.Disposable {
                 // FIXME: to implement
                 return new Disposable(() => { });
+            },
+            getWorkspaceFolder(uri: Uri): theia.WorkspaceFolder | Uri | undefined {
+                return workspaceExt.getWorkspaceFolder(uri);
             }
         };
 
@@ -487,6 +520,9 @@ export function createAPIFactory(
             Diagnostic,
             CompletionTriggerKind,
             TextEdit,
+            ProgressLocation,
+            ProgressOptions,
+            Progress,
             ParameterInformation,
             SignatureInformation,
             SignatureHelp,

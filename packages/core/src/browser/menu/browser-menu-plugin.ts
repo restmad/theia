@@ -19,13 +19,16 @@ import { MenuBar as MenuBarWidget, Menu as MenuWidget, Widget } from '@phosphor/
 import { CommandRegistry as PhosphorCommandRegistry } from '@phosphor/commands';
 import {
     CommandRegistry, ActionMenuNode, CompositeMenuNode,
-    MenuModelRegistry, MAIN_MENU_BAR, MenuPath
+    MenuModelRegistry, MAIN_MENU_BAR, MenuPath, ILogger
 } from '../../common';
 import { KeybindingRegistry, Keybinding } from '../keybinding';
 import { FrontendApplicationContribution, FrontendApplication } from '../frontend-application';
 
 @injectable()
 export class BrowserMainMenuFactory {
+
+    @inject(ILogger)
+    protected readonly logger: ILogger;
 
     constructor(
         @inject(CommandRegistry) protected readonly commandRegistry: CommandRegistry,
@@ -37,7 +40,7 @@ export class BrowserMainMenuFactory {
         const menuBar = new DynamicMenuBarWidget();
         menuBar.id = 'theia:menubar';
         const menuModel = this.menuProvider.getMenu(MAIN_MENU_BAR);
-        const phosphorCommands = this.createPhosporCommands(menuModel);
+        const phosphorCommands = this.createPhosphorCommands(menuModel);
         // for the main menu we want all items to be visible.
         phosphorCommands.isVisible = () => true;
 
@@ -52,13 +55,13 @@ export class BrowserMainMenuFactory {
 
     createContextMenu(path: MenuPath): MenuWidget {
         const menuModel = this.menuProvider.getMenu(path);
-        const phosphorCommands = this.createPhosporCommands(menuModel);
+        const phosphorCommands = this.createPhosphorCommands(menuModel);
 
         const contextMenu = new DynamicMenuWidget(menuModel, { commands: phosphorCommands });
         return contextMenu;
     }
 
-    protected createPhosporCommands(menu: CompositeMenuNode): PhosphorCommandRegistry {
+    protected createPhosphorCommands(menu: CompositeMenuNode): PhosphorCommandRegistry {
         const commands = new PhosphorCommandRegistry();
         this.addPhosphorCommands(commands, menu);
         return commands;
@@ -77,6 +80,10 @@ export class BrowserMainMenuFactory {
     protected addPhosphorCommand(commands: PhosphorCommandRegistry, menu: ActionMenuNode): void {
         const command = this.commandRegistry.getCommand(menu.action.commandId);
         if (!command) {
+            return;
+        }
+        if (commands.hasCommand(command.id)) {
+            this.logger.warn(`Command with ID ${command.id} is already registered`);
             return;
         }
         commands.addCommand(command.id, {

@@ -1,24 +1,25 @@
 {
   "name": "@theia/debug",
-  "version": "0.3.16",
+  "version": "0.3.17",
   "description": "Theia - Debug Extension",
   "dependencies": {
-    "@theia/console": "^0.3.16",
-    "@theia/core": "^0.3.16",
-    "@theia/editor": "^0.3.16",
-    "@theia/filesystem": "^0.3.16",
-    "@theia/json": "^0.3.16",
-    "@theia/markers": "^0.3.16",
-    "@theia/monaco": "^0.3.16",
-    "@theia/process": "^0.3.16",
-    "@theia/output": "^0.3.16",
-    "@theia/terminal": "^0.3.16",
-    "@theia/variable-resolver": "^0.3.16",
-    "@theia/workspace": "^0.3.16",
+    "@theia/console": "^0.3.17",
+    "@theia/core": "^0.3.17",
+    "@theia/editor": "^0.3.17",
+    "@theia/filesystem": "^0.3.17",
+    "@theia/json": "^0.3.17",
+    "@theia/markers": "^0.3.17",
+    "@theia/monaco": "^0.3.17",
+    "@theia/output": "^0.3.17",
+    "@theia/process": "^0.3.17",
+    "@theia/terminal": "^0.3.17",
+    "@theia/variable-resolver": "^0.3.17",
+    "@theia/workspace": "^0.3.17",
     "@types/p-debounce": "^1.0.0",
     "jsonc-parser": "^2.0.2",
     "p-debounce": "^1.0.0",
-    "vscode-debugprotocol": "^1.32.0"
+    "vscode-debugprotocol": "^1.32.0",
+    "unzip-stream": "^0.3.0"
   },
   "publishConfig": {
     "access": "public"
@@ -30,7 +31,7 @@
     }
   ],
   "keywords": [
-    "theia-extension, debug"
+    "theia-extension", "debug"
   ],
   "license": "EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0",
   "repository": {
@@ -41,6 +42,9 @@
     "url": "https://github.com/theia-ide/theia/issues"
   },
   "homepage": "https://github.com/theia-ide/theia",
+  "bin": {
+    "download-debug-adapters": "./bin/download-adapters.js"
+  },
   "files": [
     "lib",
     "src"
@@ -54,7 +58,7 @@
     "docs": "theiaext docs"
   },
   "devDependencies": {
-    "@theia/ext-scripts": "^0.3.16"
+    "@theia/ext-scripts": "^0.3.17"
   },
   "nyc": {
     "extends": "../../configs/nyc.json"

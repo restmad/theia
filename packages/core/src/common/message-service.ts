@@ -15,7 +15,15 @@
  ********************************************************************************/
 
 import { injectable, inject } from 'inversify';
-import { MessageClient, MessageType, MessageOptions } from './message-service-protocol';
+import {
+    MessageClient,
+    MessageType,
+    MessageOptions,
+    Progress,
+    ProgressUpdate,
+    ProgressMessage
+} from './message-service-protocol';
+import { CancellationTokenSource } from './cancellation';
 
 @injectable()
 export class MessageService {
@@ -24,29 +32,29 @@ export class MessageService {
         @inject(MessageClient) protected readonly client: MessageClient
     ) { }
 
-    log(message: string, ...actions: string[]): Promise<string | undefined>;
-    log(message: string, options?: MessageOptions, ...actions: string[]): Promise<string | undefined>;
+    log<T extends string>(message: string, ...actions: T[]): Promise<T | undefined>;
+    log<T extends string>(message: string, options?: MessageOptions, ...actions: T[]): Promise<T | undefined>;
     // tslint:disable-next-line:no-any
     log(message: string, ...args: any[]): Promise<string | undefined> {
         return this.processMessage(MessageType.Log, message, args);
     }
 
-    info(message: string, ...actions: string[]): Promise<string | undefined>;
-    info(message: string, options?: MessageOptions, ...actions: string[]): Promise<string | undefined>;
+    info<T extends string>(message: string, ...actions: T[]): Promise<T | undefined>;
+    info<T extends string>(message: string, options?: MessageOptions, ...actions: T[]): Promise<T | undefined>;
     // tslint:disable-next-line:no-any
     info(message: string, ...args: any[]): Promise<string | undefined> {
         return this.processMessage(MessageType.Info, message, args);
     }
 
-    warn(message: string, ...actions: string[]): Promise<string | undefined>;
-    warn(message: string, options?: MessageOptions, ...actions: string[]): Promise<string | undefined>;
+    warn<T extends string>(message: string, ...actions: T[]): Promise<T | undefined>;
+    warn<T extends string>(message: string, options?: MessageOptions, ...actions: T[]): Promise<T | undefined>;
     // tslint:disable-next-line:no-any
     warn(message: string, ...args: any[]): Promise<string | undefined> {
         return this.processMessage(MessageType.Warning, message, args);
     }
 
-    error(message: string, ...actions: string[]): Promise<string | undefined>;
-    error(message: string, options?: MessageOptions, ...actions: string[]): Promise<string | undefined>;
+    error<T extends string>(message: string, ...actions: T[]): Promise<T | undefined>;
+    error<T extends string>(message: string, options?: MessageOptions, ...actions: T[]): Promise<T | undefined>;
     // tslint:disable-next-line:no-any
     error(message: string, ...args: any[]): Promise<string | undefined> {
         return this.processMessage(MessageType.Error, message, args);
@@ -65,4 +73,37 @@ export class MessageService {
         return this.client.showMessage({ type, text });
     }
 
+    async showProgress(message: ProgressMessage, onDidCancel?: () => void): Promise<Progress> {
+        const id = this.newProgressId();
+        const cancellationSource = new CancellationTokenSource();
+        const report = (update: ProgressUpdate) => {
+            this.client.reportProgress(id, update, message, cancellationSource.token);
+        };
+        let clientMessage = message;
+        if (ProgressMessage.isCancelable(message)) {
+            const actions = new Set<string>(message.actions);
+            actions.add(ProgressMessage.Cancel);
+            clientMessage = { ...message, actions: Array.from(actions) };
+        }
+        const result = this.client.showProgress(id, clientMessage, cancellationSource.token);
+        if (ProgressMessage.isCancelable(message) && typeof onDidCancel === 'function') {
+            result.then(value => {
+                if (value === ProgressMessage.Cancel) {
+                    onDidCancel();
+                }
+            });
+        }
+        return {
+            id,
+            cancel: () => cancellationSource.cancel(),
+            result,
+            report
+        };
+    }
+
+    private progressIdPrefix = Math.random().toString(36).substring(5);
+    private counter = 0;
+    protected newProgressId(): string {
+        return `${this.progressIdPrefix}-${++this.counter}`;
+    }
 }
