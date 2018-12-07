@@ -48,9 +48,7 @@ export class KeybindingsContributionPointHandler {
     private handlePartialKeybindings(keybinding: Keybinding, partialKeybindings: Keybinding[]) {
         partialKeybindings.forEach(partial => {
             if (keybinding.context === undefined || keybinding.context === partial.context) {
-                this.logger.warn('Partial keybinding is ignored;',
-                    Keybinding.stringify(keybinding), ' shadows ',
-                    Keybinding.stringify(partial));
+                this.logger.warn(`Partial keybinding is ignored; ${Keybinding.stringify(keybinding)} shadows ${Keybinding.stringify(partial)}`);
             }
         });
     }
@@ -60,9 +58,7 @@ export class KeybindingsContributionPointHandler {
             if (shadow.context === undefined || shadow.context === keybinding.context) {
                 this.keybindingRegistry.unregisterKeybinding(shadow);
 
-                this.logger.warn('Shadowing keybinding is ignored;',
-                    Keybinding.stringify(shadow), ' shadows ',
-                    Keybinding.stringify(keybinding));
+                this.logger.warn(`Shadowing keybinding is ignored; ${Keybinding.stringify(shadow)}, shadows ${Keybinding.stringify(keybinding)}`);
             }
         });
     }
