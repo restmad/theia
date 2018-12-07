@@ -275,8 +275,12 @@ export class SearchInWorkspaceResultTreeWidget extends TreeWidget {
     protected filenameAndPath(uriStr: string): { name: string, path: string } {
         const uri: URI = new URI(uriStr);
         const name = uri.displayName;
-        const path = new Path(uri.toString().substr(this.workspaceRoot.length + 1)).dir.toString();
-        return { name, path };
+        if (uri.parent.toString() === new URI(this.workspaceRoot).toString()) {
+            return { name, path: '' };
+        } else {
+            const path = new Path(uri.toString().substr(this.workspaceRoot.length + 1)).dir.toString();
+            return { name, path };
+        }
     }
 
     protected renderCaption(node: TreeNode, props: NodeProps): React.ReactNode {
